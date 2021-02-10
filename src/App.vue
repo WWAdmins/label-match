@@ -1,5 +1,5 @@
 <template>
-    <!-- <div id="app">
+    <div id="app">
         <b-container>
             <b-row>
                 <b-col cols="5">
@@ -13,23 +13,6 @@
                 </b-col>
             </b-row>
             <b-row>
-                <b-col>
-                    <b-button id="picButton" class="picButton" v-on:click="takePhoto()">Take photo</b-button>
-                </b-col>
-            </b-row>
-            <b-row>
-                <vue-web-cam
-                    ref="webcam"
-                    :device-id="deviceId"
-                    width="100%"
-                    @started="onStarted"
-                    @stopped="onStopped"
-                    @error="onError"
-                    @cameras="onCameras"
-                    @camera-change="onCameraChange"
-                />
-            </b-row>
-            <b-row>
                 <select v-model="camera">
                     <option>-- Select Device --</option>
                     <option
@@ -41,8 +24,8 @@
             </b-row>
             <b-row>
                 <button type="button" class="btn btn-primary" @click="onCapture">Capture Photo</button>
-                <button type="button" class="btn btn-danger" @click="onStop">Stop Camera</button>
-                <button type="button" class="btn btn-success" @click="onStart">Start Camera</button>
+                <!-- <button type="button" class="btn btn-danger" @click="onStop">Stop Camera</button>
+                <button type="button" class="btn btn-success" @click="onStart">Start Camera</button> -->
             </b-row>
             <b-row>
                 <h2>Captured Image</h2>
@@ -51,52 +34,8 @@
                 </figure>
             </b-row>
         </b-container>
-    </div> -->
-    <div class="container">
-        <div class="row">
-            <div class="col-md-6">
-                <h2>Current Camera</h2>
-                <code v-if="device">{{ device.label }}</code>
-                <div class="border">
-                    <vue-web-cam
-                        ref="webcam"
-                        :device-id="deviceId"
-                        width="100%"
-                        height="80%"
-                        @started="onStarted"
-                        @stopped="onStopped"
-                        @error="onError"
-                        @cameras="onCameras"
-                        @camera-change="onCameraChange"
-                    />
-                </div>
+        
 
-                <div class="row">
-                    <div class="col-md-12">
-                        <select v-model="camera">
-                            <option>-- Select Device --</option>
-                            <option
-                                v-for="device in devices"
-                                :key="device.deviceId"
-                                :value="device.deviceId"
-                            >{{ device.label }}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-12">
-                        <button type="button" class="btn btn-primary" @click="onCapture">Capture Photo</button>
-                        <button type="button" class="btn btn-danger" @click="onStop">Stop Camera</button>
-                        <button type="button" class="btn btn-success" @click="onStart">Start Camera</button>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <h2>Captured Image</h2>
-                <figure class="figure">
-                    <img :src="img" class="img-responsive" />
-                </figure>
-            </div>
-            <label>https://googlechrome.github.io/samples/image-capture/update-camera-zoom.html</label>
-        </div>
     </div>
 </template>
 
@@ -144,10 +83,10 @@
 
         mounted() {
             // Fetch image from q or receive from input link
-            console.log(WebCam)
         },
 
         methods: {
+
             // On key press in input fields
             // Filters any key press that is not 0-9 or 'ArrowRight','ArrowLeft','Backspace', 'Tab'
             // (any filtered key presses are discarded)
@@ -204,4 +143,5 @@
     color: #2c3e50;
     margin-top: 60px;
 }
+
 </style>
