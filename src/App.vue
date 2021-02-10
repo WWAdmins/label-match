@@ -12,6 +12,15 @@
                     >
                 </b-col>
             </b-row>
+                <vue-web-cam
+                    ref="webcam"
+                    :device-id="deviceId"
+                    @started="onStarted"
+                    @stopped="onStopped"
+                    @error="onError"
+                    @cameras="onCameras"
+                    @camera-change="onCameraChange"
+                />
             <b-row>
                 <select v-model="camera">
                     <option>-- Select Device --</option>
@@ -34,8 +43,6 @@
                 </figure>
             </b-row>
         </b-container>
-        
-
     </div>
 </template>
 
