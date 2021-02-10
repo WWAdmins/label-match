@@ -19,7 +19,6 @@
         value=0
         class="slider"
         id="zoomSlide"
-        @input="sliderInput"
       >
     </b-row>
   </div>
@@ -78,7 +77,9 @@ export default {
       maxZoom: null,
       zoomable: false,
       stepZoom: null,
-      zoom: null
+      zoom: null,
+
+      delayTimer: null
     };
   },
 
@@ -97,21 +98,6 @@ export default {
   },
 
   methods: {
-
-    sliderInput(input) {
-      this.zoom = input.target.value;
-
-      let constraints = { video: true };
-      navigator.mediaDevices
-        .getUserMedia(constraints)
-        .then(stream => {
-          //Make sure to stop this MediaStream
-          let tracks = stream.getTracks();
-          tracks[0].applyConstraints({advanced: [ {zoom: this.maxZoom} ]});
-          this.loadSrcStream(stream);
-        })
-        .catch(error => this.$emit("error", error));
-    },
 
     /**
      * get user media
@@ -204,6 +190,16 @@ export default {
         // old broswers
         this.source = window.HTMLMediaElement.srcObject(stream);
       }
+
+      if (this.zoomable) {
+        const [track] = stream.getVideoTracks();
+        const zoomSlider = document.getElementById("zoomSlide");
+        zoomSlider.oninput = function(event) {
+          this.zoom = event.target.value;
+          track.applyConstraints({advanced: [ {zoom: event.target.value} ]});
+        }
+      }
+
       // Emit video start/live event
       this.$refs.video.onloadedmetadata = () => {
         this.$emit("video-live", stream);
@@ -330,7 +326,6 @@ export default {
     initZoom(track) {
       const capabilities = track.getCapabilities();
       const settings = track.getSettings();
-      console.log(track)
       if (!('zoom' in settings)) {
         this.zoomable = false;
       } else {
@@ -339,6 +334,7 @@ export default {
         this.maxZoom = capabilities.zoom.max;
         this.stepZoom = capabilities.zoom.step;
         this.zoom = settings.zoom;
+        console.log(this.minZoom,this.maxZoom,this.stepZoom,this.zoom)
       }
     }
   }
