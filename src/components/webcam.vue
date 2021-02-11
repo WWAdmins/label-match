@@ -204,12 +204,12 @@ export default {
             const zoomSlider = document.getElementById("zoomSlide");
             if (this.zoomable) {
                 const [track] = stream.getVideoTracks();
-                zoomSlider.oninput = function(event) {
+                zoomSlider.oninput = (event) => {
                     this.zoom = event.target.value;
                     track.applyConstraints({advanced: [ {zoom: event.target.value} ]});
                 }
             } else {
-                zoomSlider.oninput = function(event) {
+                zoomSlider.oninput = (event) => {
                     this.zoom = event.target.value;
                     document.getElementById("video").style.transform = `scale(${event.target.value}, ${event.target.value})`;
                 }
@@ -333,7 +333,13 @@ export default {
             }
 
             const { ctx, canvas } = this;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            if (!this.zoomable) {
+                ctx.scale(this.zoom, this.zoom);
+                ctx.drawImage(video, -(video.videoWidth*(((this.zoom/2)-1/2)/this.zoom)), -(video.videoHeight*(((this.zoom/2)-1/2)/this.zoom)), canvas.width, canvas.height);
+                ctx.scale(1/this.zoom, 1/this.zoom);
+            } else {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            }
 
             return canvas;
         },

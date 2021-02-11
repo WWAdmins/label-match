@@ -12,37 +12,62 @@
                     >
                 </b-col>
             </b-row>
-                <vue-web-cam
-                    ref="webcam"
-                    :device-id="deviceId"
-                    @started="onStarted"
-                    @stopped="onStopped"
-                    @error="onError"
-                    @cameras="onCameras"
-                    @camera-change="onCameraChange"
-                />
-            <b-row>
-                <select v-model="camera">
-                    <option>-- Select Device --</option>
-                    <option
-                        v-for="device in devices"
-                        :key="device.deviceId"
-                        :value="device.deviceId"
-                    >{{ device.label }}</option>
-                </select>
-            </b-row>
-            <b-row>
-                <button type="button" class="btn btn-primary" @click="onCapture">Capture Photo</button>
-                <!-- <button type="button" class="btn btn-danger" @click="onStop">Stop Camera</button>
-                <button type="button" class="btn btn-success" @click="onStart">Start Camera</button> -->
-            </b-row>
+
             <b-row>
                 <h2>Captured Image</h2>
                 <figure class="figure">
-                    <img :src="img" class="img-responsive" />
+                    <img :src="img" class="image" />
                 </figure>
             </b-row>
         </b-container>
+
+        <b-modal id="camModal" size="xl">
+            <template #modal-header="{  }">     <!-- Header -->
+                <!-- Emulate built in modal header close button action -->
+                <label class="modal-header" v-if="modalMode == 'cam'">Take image</label>
+                <label class="modal-header" v-if="modalMode == 'confirm'">Confirm image</label>
+            </template>
+
+            <template #default="{  }">      <!-- Body -->
+                <b-container v-show="modalMode == 'cam'" class="container">
+                    <vue-web-cam
+                        ref="webcam"
+                        :device-id="deviceId"
+                        @started="onStarted"
+                        @stopped="onStopped"
+                        @error="onError"
+                        @cameras="onCameras"
+                        @camera-change="onCameraChange"
+                    />
+                    <select v-model="camera">
+                        <option>-- Select Device --</option>
+                        <option
+                            v-for="device in devices"
+                            :key="device.deviceId"
+                            :value="device.deviceId"
+                        >{{ device.label }}</option>
+                    </select>
+                </b-container>
+                <b-container v-show="modalMode == 'confirm'" class="container">
+                    <b-row>
+                        <b-col cols="10"  offset="1">
+                            <img class="image" :src="img" alt="taken image">
+                        </b-col>
+                    </b-row>
+                    
+                </b-container>
+            </template>
+
+            <template #modal-footer="{ cancel, ok }">     <!-- Footer -->
+                <b-container>
+                    <!-- Emulate built in modal footer ok and cancel button actions -->
+                    <b-button v-if="modalMode == 'cam'" class="float-left" variant="danger" @click="cancel()">Cancel</b-button>
+                    <b-button v-if="modalMode == 'confirm'" class="float-left" variant="danger" @click="retake()">Cancel</b-button>
+                    <b-button v-if="modalMode == 'cam'" class="float-right" variant="primary" @click="onCapture()">Capture Photo</b-button>
+                    <b-button v-if="modalMode == 'confirm'" class="float-right" variant="primary" @click="ok()">Confirm</b-button>
+                </b-container>
+            </template>
+        </b-modal>
     </div>
 </template>
 
@@ -84,12 +109,15 @@
                 img: null,
                 camera: null,
                 deviceId: null,
-                devices: []
+                devices: [],
+
+                modalMode: 'cam'
             };
         },
 
         mounted() {
             // Fetch image from q or receive from input link
+            this.$bvModal.show('camModal')
         },
 
         methods: {
@@ -108,7 +136,13 @@
 
             onCapture() {
                 this.img = this.$refs.webcam.capture();
+                this.modalMode = 'confirm';
             },
+
+            retake() {
+                this.modalMode = 'cam'
+            },
+
             // onStarted(stream) {
             onStarted() {
                 // console.log("On Started Event", stream);
@@ -148,7 +182,17 @@
     -moz-osx-font-smoothing: grayscale;
     text-align: center;
     color: #2c3e50;
+    background-color: rgba(254, 254, 254, 1);
     margin-top: 60px;
+}
+
+.dotted {
+    border-style: dotted;
+}
+
+.image { 
+    max-width: 100%; 
+    object-fit: cover;
 }
 
 </style>
