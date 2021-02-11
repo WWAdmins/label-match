@@ -1,26 +1,5 @@
 <template>
     <div id="app">
-        <b-container>
-            <b-row>
-                <b-col cols="5">
-                    <input
-                        class="standard-input"
-                        id="stockInput"
-                        v-model.number="stockCode"
-                        required
-                        @keydown="keyDown"
-                    >
-                </b-col>
-            </b-row>
-
-            <b-row>
-                <h2>Captured Image</h2>
-                <figure class="figure">
-                    <img :src="img" class="image" />
-                </figure>
-            </b-row>
-        </b-container>
-
         <b-modal id="camModal" size="xl">
             <template #modal-header="{  }">     <!-- Header -->
                 <!-- Emulate built in modal header close button action -->
@@ -68,6 +47,48 @@
                 </b-container>
             </template>
         </b-modal>
+
+
+        <b-container>
+            <b-row>
+                <b-col cols="5">
+                    <label for="stockInput" class="main-title">Stock code:</label>
+                    <input
+                        class="standard-input"
+                        id="stockInput"
+                        v-model.number="stockCode"
+                        required
+                        @keydown="keyDown"
+                    >
+                </b-col>
+            </b-row>
+
+            <b-row>
+                <b-col cols="10">
+                    <label for="pic" class="header">Captured Image</label>
+                </b-col>
+            </b-row>
+
+            <b-row>
+                <b-col cols="10 display">
+                    <img id="pic" :src="img" class="image layer-2" />
+                    <img id="pdf" src="./assets/522572.jpg" class="image pdf" />
+                </b-col>
+            </b-row>
+            
+            <b-row>
+                <input 
+                    type="range" 
+                    min=0
+                    max=1
+                    step=0.01
+                    value=0.5
+                    class="slider"
+                    id="opacitySlider"
+                    @input="opacitySlide"
+                >
+            </b-row>
+        </b-container>
     </div>
 </template>
 
@@ -118,9 +139,14 @@
         mounted() {
             // Fetch image from q or receive from input link
             this.$bvModal.show('camModal')
+            document.getElementById('pic').style.opacity = 0.5
         },
 
         methods: {
+
+            opacitySlide(event) {
+                document.getElementById('pic').style.opacity = event.target.value;
+            },
 
             // On key press in input fields
             // Filters any key press that is not 0-9 or 'ArrowRight','ArrowLeft','Backspace', 'Tab'
@@ -176,6 +202,10 @@
 </script>
 
 <style>
+.dotted {
+    border-style: dotted;
+}
+
 #app {
     font-family: Avenir, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -193,6 +223,60 @@
 .image { 
     max-width: 100%; 
     object-fit: cover;
+}
+
+.standard-input {
+    float: left;
+    width: 100%;
+    padding: 4%;
+    border: 1px solid lightgrey;
+    border-radius: 8px;
+    font-size: 120%;
+    outline-width: 3px;
+    outline-color: darkgrey;
+}
+
+.main-title {
+  font-size: 200%;
+  text-align: left;
+  white-space: pre-wrap;
+  float: left;
+  font-weight: 500;
+  color: rgba(65,65,65,1);
+}
+
+.header {
+  font-weight: 500;
+  padding: 15px 10px 5px 10px;
+  text-align: left;
+  font-size: 150%;
+  white-space: pre-wrap;
+}
+
+.form-header {
+  padding: 15px 10px 5px 10px;
+  text-align: left;
+  font-size: 25px;
+  white-space: pre-wrap;
+}
+
+.display {
+    object-fit: cover;
+    padding: 2%;
+    border: 4px groove lightgrey;
+    border-radius: 9px;
+}
+
+.layer-2 {
+  z-index: 1;
+  position: absolute;
+  left: 2%;
+  width: 80%;
+}
+
+.pdf {
+    height: 480px;
+    width: auto;
 }
 
 </style>
