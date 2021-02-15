@@ -43,7 +43,7 @@
                     <b-button v-if="modalMode == 'cam'" class="float-left" variant="danger" @click="cancel()">Cancel</b-button>
                     <b-button v-if="modalMode == 'confirm'" class="float-left" variant="danger" @click="retake()">Cancel</b-button>
                     <b-button v-if="modalMode == 'cam'" class="float-right" variant="primary" @click="onCapture()">Capture Photo</b-button>
-                    <b-button v-if="modalMode == 'confirm'" class="float-right" variant="primary" @click="ok()">Confirm</b-button>
+                    <b-button v-if="modalMode == 'confirm'" class="float-right" variant="primary" @click="ok(); confirm();">Confirm</b-button>
                 </b-container>
             </template>
         </b-modal>
@@ -94,6 +94,7 @@
 
 <script>
     import WebCam from "./components/webcam.vue";
+    import axios from 'axios'
 
     export default {
         name: 'App',
@@ -132,17 +133,41 @@
                 deviceId: null,
                 devices: [],
 
-                modalMode: 'cam'
+                modalMode: 'cam',
+
+                gCloudVisionUrl: null,
+
+                picData: null,
+                pdfData: null
             };
         },
 
-        mounted() {
+        async mounted() {
             // Fetch image from q or receive from input link
-            this.$bvModal.show('camModal')
-            document.getElementById('pic').style.opacity = 0.5
+            this.$bvModal.show('camModal');
+
+            this.gCloudVisionUrl = `https://vision.googleapis.com/v1/images:annotate?key=AIzaSyC4vx8WeLPnUzJ_BHoXM4QeO-hqdstKd6g`;
+
         },
 
         methods: {
+
+            async confirm() {
+                this.imageURL = this.img.split(",")[1];
+                
+                let requestBody = { requests: [ { image: { content: this.imageURL }, features: [ { type: "TEXT_DETECTION", maxResults: 1000 } ] } ] };
+                
+                await axios.post( this.gCloudVisionUrl, requestBody).then(response => {
+                        this.picData = response.data.responses[0]
+                        console.log(this.picData.fullTextAnnotation.text)
+                        console.log(this.picData.textAnnotations)
+                    }).catch(error => {
+                        console.log(error);
+                        console.log(error.response.data.error.message);
+                    });
+
+                
+            },
 
             opacitySlide(event) {
                 document.getElementById('pic').style.opacity = event.target.value;
