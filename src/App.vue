@@ -60,20 +60,28 @@
                         required
                         @keydown="keyDown"
                     >
+                    <input id="file" type="file"/>
+                    <br/>
+                    <br/>
+                    <button id="button" @click="readFile()">Evaluate</button>
+                    <button id="button" @click="readPdf()">Send pdf</button>
+                    <button id="button" @click="compare()">Compare</button>
                 </b-col>
             </b-row>
 
             <b-row>
-                <b-col cols="10">
+                <b-col lg="6">
                     <label for="pic" class="header">Captured Image</label>
-                </b-col>
-            </b-row>
-
-            <b-row>
-                <b-col cols="10 display">
                     <img id="pic" :src="img" class="image layer-2" />
+                </b-col>
+                <b-col lg="6">
+                    <label for="pdf" class="header">Image on file</label>
                     <img id="pdf" src="./assets/522572.jpg" class="image pdf" />
                 </b-col>
+            </b-row>
+
+            <b-row>
+                
             </b-row>
             
             <b-row>
@@ -94,7 +102,8 @@
 
 <script>
     import WebCam from "./components/webcam.vue";
-    import axios from 'axios'
+    import SECURE from "./assets/secure.json";
+    import axios from 'axios';
 
     export default {
         name: 'App',
@@ -138,7 +147,12 @@
                 gCloudVisionUrl: null,
 
                 picData: null,
-                pdfData: null
+                picHeight: null,
+                picWidth: null,
+                pdfData: null,
+                pdfWidth: null,
+                pdfHeight: null,
+                pdf64: null
             };
         },
 
@@ -146,27 +160,92 @@
             // Fetch image from q or receive from input link
             this.$bvModal.show('camModal');
 
-            this.gCloudVisionUrl = `https://vision.googleapis.com/v1/images:annotate?key=AIzaSyC4vx8WeLPnUzJ_BHoXM4QeO-hqdstKd6g`;
-
+            this.gCloudVisionUrl = `https://vision.googleapis.com/v1/images:annotate?key=${SECURE.privateKey}`;
         },
 
         methods: {
 
+            async readFile() {
+                var files = document.getElementById('file').files;
+                var file;
+                if (files.length > 0) {
+                    file = files[0];
+                }
+
+                var reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => {
+                    this.pdf64 = reader.result;
+                };
+                reader.onerror = function (error) {
+                    console.log('Error: ', error);
+                };
+            },
+
             async confirm() {
-                this.imageURL = this.img.split(",")[1];
+                const imageURL = this.img.split(",")[1];
                 
-                let requestBody = { requests: [ { image: { content: this.imageURL }, features: [ { type: "TEXT_DETECTION", maxResults: 1000 } ] } ] };
+                let requestBody = { requests: [ { image: { content: imageURL }, features: [ { type: "TEXT_DETECTION", maxResults: 1000 } ] } ] };
                 
                 await axios.post( this.gCloudVisionUrl, requestBody).then(response => {
-                        this.picData = response.data.responses[0]
-                        console.log(this.picData.fullTextAnnotation.text)
-                        console.log(this.picData.textAnnotations)
-                    }).catch(error => {
-                        console.log(error);
-                        console.log(error.response.data.error.message);
-                    });
+                    this.picData = response.data.responses[0]
+                    this.picWidth = this.picData.fullTextAnnotation.pages[0].width;
+                    this.picHeight = this.picData.fullTextAnnotation.pages[0].height;
+                    console.log(this.picData.fullTextAnnotation.text)
+                    console.log(this.picData.textAnnotations)
+                }).catch(error => {
+                    console.log(error);
+                    console.log(error.response.data.error.message);
+                });
 
+            },
+
+            async readPdf() {
+                const pdfURL = this.pdf64.split(",")[1];
                 
+                let requestBody = { requests: [ { image: { content: pdfURL }, features: [ { type: "TEXT_DETECTION", maxResults: 1000 } ] } ] };
+                
+                await axios.post( this.gCloudVisionUrl, requestBody).then(response => {
+                    this.pdfData = response.data.responses[0];
+                    this.pdfWidth = this.pdfData.fullTextAnnotation.pages[0].width;
+                    this.pdfHeight = this.pdfData.fullTextAnnotation.pages[0].height;
+                    console.log(this.pdfData.textAnnotations)
+                }).catch(error => {
+                    console.log(error);
+                    console.log(error.response.data.error.message);
+                });
+
+            },
+
+            compare() {
+                var picWords = {};
+                var picWordsFull = {};
+                this.picData.textAnnotations.forEach(element => {
+                    if (!element.locale) { 
+                        picWords[element.description] = element.boundingPoly.vertices; 
+                    } else { 
+                        picWordsFull[element.description] = element.boundingPoly.vertices; 
+                    }
+                });
+                
+                var pdfWords = {};
+                var pdfWordsFull = {};
+                this.pdfData.textAnnotations.forEach(element => {
+                    if (!element.locale) { 
+                        pdfWords[element.description] = element.boundingPoly.vertices; 
+                    } else { 
+                        pdfWordsFull[element.description] = element.boundingPoly.vertices; 
+                    }
+                });
+
+                console.log(picWordsFull, pdfWordsFull)
+                console.log(picWords, pdfWords)
+
+                const picNotPdf = Object.keys(picWords).filter(x => !Object.keys(pdfWords).includes(x));
+                const pdfNotPic = Object.keys(pdfWords).filter(x => !Object.keys(picWords).includes(x));
+
+                console.log(picNotPdf)
+                console.log(pdfNotPic)
             },
 
             opacitySlide(event) {
