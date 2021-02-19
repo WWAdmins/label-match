@@ -1,6 +1,6 @@
 <template>
     <div id="app">
-        <b-modal id="camModal" size="xl">
+        <b-modal id="camModal" size="xl" no-close-on-backdrop>
             <template #modal-header="{  }">     <!-- Header -->
                 <!-- Emulate built in modal header close button action -->
                 <label class="modal-header" v-if="modalMode == 'cam'">Take image</label>
@@ -43,58 +43,78 @@
                     <b-button v-if="modalMode == 'cam'" class="float-left" variant="danger" @click="cancel()">Cancel</b-button>
                     <b-button v-if="modalMode == 'confirm'" class="float-left" variant="danger" @click="retake()">Cancel</b-button>
                     <b-button v-if="modalMode == 'cam'" class="float-right" variant="primary" @click="onCapture()">Capture Photo</b-button>
-                    <b-button v-if="modalMode == 'confirm'" class="float-right" variant="primary" @click="ok(); confirm();">Confirm</b-button>
+                    <b-button v-if="modalMode == 'confirm'" class="float-right" variant="primary" @click="ok(); modalMode = 'cam'">Confirm</b-button>
                 </b-container>
+            </template>
+        </b-modal>
+
+        <b-modal id="loadingModal" size="lg" no-close-on-backdrop>
+            <template #modal-header="{  }">     <!-- Header -->
+                <!-- Emulate built in modal header close button action -->
+                <label class="modal-header header">Google is doing smart things so we don't have to</label>
+            </template>
+
+            <template #default="{  }">      <!-- Body -->
+                <b-container class="container">
+                    <img src="./assets/sending-to-google.gif" alt="fancy loading gif" class="image">
+                </b-container>
+            </template>
+            <template #modal-footer="{  }">     <!-- Footer -->
             </template>
         </b-modal>
 
 
         <b-container>
             <b-row>
-                <b-col cols="5">
-                    <label for="stockInput" class="main-title">Stock code:</label>
-                    <input
-                        class="standard-input"
-                        id="stockInput"
-                        v-model.number="stockCode"
-                        required
-                        @keydown="keyDown"
-                    >
-                    <input id="file" type="file"/>
-                    <br/>
-                    <br/>
-                    <button id="button" @click="readFile()">Evaluate</button>
-                    <button id="button" @click="readPdf()">Send pdf</button>
-                    <button id="button" @click="compare()">Compare</button>
+                <b-col lg="4">
+                    <b-form-file
+                        v-model="pdf"
+                        :state="Boolean(pdf)"
+                        placeholder="Choose a file or drop it here..."
+                        drop-placeholder="Drop file here..."
+                        @input="readFile"
+                        accept="image/*"
+                    ></b-form-file>
+                </b-col>
+                <b-col lg="2">
+                    <b-button id="button" variant="success" @click="newPic()">New pic</b-button>
+                </b-col>
+                <b-col lg="2">
+                    <b-button id="button" variant="success" @click="compare()">Compare</b-button>
                 </b-col>
             </b-row>
 
-            <b-row>
-                <b-col lg="6">
-                    <label for="pic" class="header">Captured Image</label>
-                    <img id="pic" :src="img" class="image layer-2" />
-                </b-col>
-                <b-col lg="6">
-                    <label for="pdf" class="header">Image on file</label>
-                    <img id="pdf" src="./assets/522572.jpg" class="image pdf" />
+            <b-row class="no-gutters margined">
+                <b-col sm="auto">
+                    <img id="pdf" :src="pdf64" class="image pdf" />
+                    <box
+                        v-for="(n, index) of pdfNotPic"
+                        :boxId="'pdf'+index"
+                        :key="'pdf'+index"
+                        :corner0="n[0]"
+                        :corner1="n[1]"
+                        :corner2="n[2]"
+                        :corner3="n[3]"
+                        :imageSize="{'width':pdfWidth, 'height':pdfHeight}"
+                        class="layer-2"
+                    ></box>
                 </b-col>
             </b-row>
-
-            <b-row>
-                
-            </b-row>
-            
-            <b-row>
-                <input 
-                    type="range" 
-                    min=0
-                    max=1
-                    step=0.01
-                    value=0.5
-                    class="slider"
-                    id="opacitySlider"
-                    @input="opacitySlide"
-                >
+            <b-row class="no-gutters margined">
+                <b-col sm="auto">
+                    <img id="pic" :src="img" class="image pdf" />
+                    <box
+                        v-for="(n, index) of picNotPdf"
+                        :boxId="'pic'+index"
+                        :key="'pic'+index"
+                        :corner0="n[0]"
+                        :corner1="n[1]"
+                        :corner2="n[2]"
+                        :corner3="n[3]"
+                        :imageSize="{'width':picWidth, 'height':picHeight}"
+                        class="layer-2"
+                    ></box>
+                </b-col>
             </b-row>
         </b-container>
     </div>
@@ -102,17 +122,20 @@
 
 <script>
     import WebCam from "./components/webcam.vue";
+    import box from "./components/Box.vue";
     import SECURE from "./assets/secure.json";
     import axios from 'axios';
 
     export default {
         name: 'App',
 
-        components: { "vue-web-cam": WebCam },
+        components: { "vue-web-cam": WebCam, box },
 
         computed: {
             device: function() {
                 return this.devices.find(n => n.deviceId === this.deviceId);
+            },
+            test: () => {
             }
         },
         watch: {
@@ -152,7 +175,11 @@
                 pdfData: null,
                 pdfWidth: null,
                 pdfHeight: null,
-                pdf64: null
+                pdf64: null,
+                pdf: null,
+
+                picNotPdf: [],
+                pdfNotPic: []
             };
         },
 
@@ -165,12 +192,16 @@
 
         methods: {
 
-            async readFile() {
-                var files = document.getElementById('file').files;
-                var file;
-                if (files.length > 0) {
-                    file = files[0];
-                }
+            newPic() {
+                this.$bvModal.show('camModal');
+                setTimeout(()=>{
+                    this.onStart();
+                }, 0);
+            },
+
+            async readFile(file) {
+                this.picNotPdf = [];
+                this.pdfNotPic = [];
 
                 var reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -182,7 +213,7 @@
                 };
             },
 
-            async confirm() {
+            async readPic() {
                 const imageURL = this.img.split(",")[1];
                 
                 let requestBody = { requests: [ { image: { content: imageURL }, features: [ { type: "TEXT_DETECTION", maxResults: 1000 } ] } ] };
@@ -191,8 +222,6 @@
                     this.picData = response.data.responses[0]
                     this.picWidth = this.picData.fullTextAnnotation.pages[0].width;
                     this.picHeight = this.picData.fullTextAnnotation.pages[0].height;
-                    console.log(this.picData.fullTextAnnotation.text)
-                    console.log(this.picData.textAnnotations)
                 }).catch(error => {
                     console.log(error);
                     console.log(error.response.data.error.message);
@@ -209,7 +238,6 @@
                     this.pdfData = response.data.responses[0];
                     this.pdfWidth = this.pdfData.fullTextAnnotation.pages[0].width;
                     this.pdfHeight = this.pdfData.fullTextAnnotation.pages[0].height;
-                    console.log(this.pdfData.textAnnotations)
                 }).catch(error => {
                     console.log(error);
                     console.log(error.response.data.error.message);
@@ -217,54 +245,48 @@
 
             },
 
-            compare() {
+            extractWords(set) {
                 var picWords = {};
                 var picWordsFull = {};
-                this.picData.textAnnotations.forEach(element => {
+                this[set].textAnnotations.forEach(element => {
                     if (!element.locale) { 
                         picWords[element.description] = element.boundingPoly.vertices; 
                     } else { 
                         picWordsFull[element.description] = element.boundingPoly.vertices; 
                     }
                 });
-                
-                var pdfWords = {};
-                var pdfWordsFull = {};
-                this.pdfData.textAnnotations.forEach(element => {
-                    if (!element.locale) { 
-                        pdfWords[element.description] = element.boundingPoly.vertices; 
-                    } else { 
-                        pdfWordsFull[element.description] = element.boundingPoly.vertices; 
-                    }
-                });
+                return picWords
+            },
 
-                console.log(picWordsFull, pdfWordsFull)
-                console.log(picWords, pdfWords)
+            async compare() {
+                this.$bvModal.show('loadingModal');
 
-                const picNotPdf = Object.keys(picWords).filter(x => !Object.keys(pdfWords).includes(x));
-                const pdfNotPic = Object.keys(pdfWords).filter(x => !Object.keys(picWords).includes(x));
+                await this.readPdf();
+                await this.readPic();
 
-                console.log(picNotPdf)
-                console.log(pdfNotPic)
+                const picWords = this.extractWords('picData');
+                const pdfWords = this.extractWords('pdfData');
+
+                const picNotPdfWords = Object.keys(picWords).filter(x => !Object.keys(pdfWords).includes(x));
+                const pdfNotPicWords = Object.keys(pdfWords).filter(x => !Object.keys(picWords).includes(x));
+
+                var word;
+                for (word of picNotPdfWords) {
+                    this.picNotPdf.push(picWords[word])
+                }
+                for (word of pdfNotPicWords) {
+                    this.pdfNotPic.push(pdfWords[word])
+                }
+                this.$bvModal.hide('loadingModal');
             },
 
             opacitySlide(event) {
                 document.getElementById('pic').style.opacity = event.target.value;
             },
 
-            // On key press in input fields
-            // Filters any key press that is not 0-9 or 'ArrowRight','ArrowLeft','Backspace', 'Tab'
-            // (any filtered key presses are discarded)
-            // if key down is 'Tab', force update to fields without timeout (prevents updates being skipped by quick change of field resetting timeout)
-            keyDown(event) {
-                const validKeys = ['ArrowRight','ArrowLeft','Backspace', 'Tab', 'Enter'];
-                const keyRegex = /[0-9]/;
-                if (!keyRegex.test(event.key) && validKeys.indexOf(event.key) < 0) {
-                    event.preventDefault();
-                }
-            },
-
             onCapture() {
+                this.picNotPdf = [];
+                this.pdfNotPic = [];
                 this.img = this.$refs.webcam.capture();
                 this.modalMode = 'confirm';
             },
@@ -272,14 +294,9 @@
             retake() {
                 this.modalMode = 'cam'
             },
-
-            // onStarted(stream) {
             onStarted() {
-                // console.log("On Started Event", stream);
             },
-            // onStopped(stream) {
             onStopped() {
-                // console.log("On Stopped Event", stream);
             },
             onStop() {
                 this.$refs.webcam.stop();
@@ -289,16 +306,13 @@
             },
             // onError(error) {
             onError() {
-                // console.log("On Error Event", error);
             },
             onCameras(cameras) {
                 this.devices = cameras;
-                // console.log("On Cameras Event", cameras);
             },
             onCameraChange(deviceId) {
                 this.deviceId = deviceId;
                 this.camera = deviceId;
-                // console.log("On Camera Change Event", deviceId);
             }
         }
     
@@ -306,9 +320,6 @@
 </script>
 
 <style>
-.dotted {
-    border-style: dotted;
-}
 
 #app {
     font-family: Avenir, Helvetica, Arial, sans-serif;
@@ -325,28 +336,13 @@
 }
 
 .image { 
-    max-width: 100%; 
-    object-fit: cover;
-}
-
-.standard-input {
-    float: left;
-    width: 100%;
-    padding: 4%;
-    border: 1px solid lightgrey;
-    border-radius: 8px;
-    font-size: 120%;
-    outline-width: 3px;
-    outline-color: darkgrey;
-}
-
-.main-title {
-  font-size: 200%;
-  text-align: left;
-  white-space: pre-wrap;
-  float: left;
-  font-weight: 500;
-  color: rgba(65,65,65,1);
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    margin: 0px;
+    display: inline-block;
+    padding: 0 !important;
+    margin: 0 !important;
 }
 
 .header {
@@ -364,23 +360,25 @@
   white-space: pre-wrap;
 }
 
-.display {
-    object-fit: cover;
-    padding: 2%;
-    border: 4px groove lightgrey;
-    border-radius: 9px;
-}
-
 .layer-2 {
   z-index: 1;
   position: absolute;
-  left: 2%;
-  width: 80%;
 }
 
 .pdf {
     height: 480px;
     width: auto;
+}
+
+.img-container {
+    min-width: 20px;
+    min-height: 20px;
+    display: inline-block;
+    padding: 0%;
+}
+
+.margined {
+    margin: 1%;
 }
 
 </style>
